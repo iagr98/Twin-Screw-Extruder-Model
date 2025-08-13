@@ -1,0 +1,22 @@
+function reactor_test = reactor_struct_for_reaction(e)
+    
+    reactor_test = [];
+    reactor_test(1).Volume = e.reactorConfiguration{1}.V;
+    reactor_test(1).InitialConcentration = [7.7277 0.025 0.005 0 0 0 0];
+    reactor_test(1).Inflows = [];
+    reactor_test(1).Inflow = e.reactorConfiguration{1}.m_Flow(1,1);
+    reactor_test(1).Outflows = [struct('Reactor', e.reactorConfiguration{1}.number+1, 'FlowRate',e.reactorConfiguration{1}.m_Flow(1,3)+e.reactorConfiguration{1}.m_Flow(2,3))];
+    for i = 2:length(e.reactorConfiguration)-1
+        reactor_test(i).Volume = e.reactorConfiguration{i}.V;
+        reactor_test(i).InitialConcentration = [7.7277 0.025 0.005 0 0 0 0];
+        reactor_test(i).Inflows = [struct('Reactor', e.reactorConfiguration{i}.number-1, 'FlowRate',e.reactorConfiguration{i}.m_Flow(1,1)+e.reactorConfiguration{i}.m_Flow(2,1)),...
+            struct('Reactor', e.reactorConfiguration{i}.number+1, 'FlowRate',e.reactorConfiguration{i}.m_Flow(1,4)+e.reactorConfiguration{i}.m_Flow(2,4))];
+        reactor_test(i).Outflows = [struct('Reactor', e.reactorConfiguration{i}.number-1, 'FlowRate',e.reactorConfiguration{i}.m_Flow(1,2)+e.reactorConfiguration{i}.m_Flow(2,2)),...
+            struct('Reactor', e.reactorConfiguration{i}.number+1, 'FlowRate',e.reactorConfiguration{i}.m_Flow(1,3)+e.reactorConfiguration{i}.m_Flow(2,3))];
+    end
+    reactor_test(i+1).Volume = e.reactorConfiguration{i}.V;
+    reactor_test(i+1).InitialConcentration = [7.7277 0.025 0.005 0 0 0 0];
+    reactor_test(i+1).Inflows = [struct('Reactor', e.reactorConfiguration{i}.number, 'FlowRate',e.reactorConfiguration{i+1}.m_Flow(1,1)+e.reactorConfiguration{i+1}.m_Flow(2,1))];
+    reactor_test(i+1).Outflows = [struct('Reactor', e.reactorConfiguration{i}.number, 'FlowRate',e.reactorConfiguration{i+1}.m_Flow(1,2)+e.reactorConfiguration{i+1}.m_Flow(2,2)),...
+            struct('Reactor', 0, 'FlowRate',e.reactorConfiguration{i+1}.m_Flow(1,3)+e.reactorConfiguration{i+1}.m_Flow(2,3))];
+end

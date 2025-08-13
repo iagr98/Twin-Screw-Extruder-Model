@@ -11,6 +11,8 @@ close all
 clc
 global e
 
+%
+
 %% User defined inputs for extruder setup and model
 % set process conditions
 %

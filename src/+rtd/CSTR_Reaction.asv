@@ -3,6 +3,7 @@ function [c, M_w, w_p] = CSTR_Reaction(extruder, c_in, tspan)
     reactorStruct = rtd.helper.reactor_struct_for_reaction(extruder, c_in);
     
     global c0;
+    % persistent c0;
     % Anzahl der Reaktoren und Komponenten
     n_reactors = numel(reactorStruct);
     n_species = numel(reactorStruct(1).InitialConcentration);
@@ -14,6 +15,11 @@ function [c, M_w, w_p] = CSTR_Reaction(extruder, c_in, tspan)
             c0 = [c0; reactorStruct(i).InitialConcentration(:)];
         end
     end
+    c0
+    % c0 = [];
+    % for i = 1:n_reactors
+    %     c0 = [c0; reactorStruct(i).InitialConcentration(:)];
+    % end
     
     % Berechnung der Geschwindigkeitsraten (k)
     load +rtd\+data\+variables\variables.mat ratio
@@ -35,8 +41,7 @@ function [c, M_w, w_p] = CSTR_Reaction(extruder, c_in, tspan)
     % DGL-System lsen
     % options = odeset('RelTol',1e-6,'AbsTol',1e-8);
     options = odeset('OutputFcn',@(t,y,flag) myOutputFcn(t,y,flag),'RelTol',1e-6,'AbsTol',1e-8);
-    % [t, c] = ode15s(@(t,c) reactorSystem(t, c, reactorStruct, n_species, k, c_in(1:n_species)), tspan, c0, options);      
-    [t, c] = ode15s(@(t,c) reactorSystem(t, c, reactorStruct, n_species, k, c_in(1:n_species)), tspan, c_in, options);      
+    [t, c] = ode15s(@(t,c) reactorSystem(t, c, reactorStruct, n_species, k, c_in(1:n_species)), tspan, c0, options);      
     
     % Berechnung der Masse nach c
     c_last = c(end,:)';
@@ -97,7 +102,7 @@ function dc = reactorSystem(t, c, reactorStruct, n_species, k, c_in)
     t;
 end
 
-function status = myOutputFcn(t,y,flag)
+function status = myOutputFcn(t,y,flag, c0)
     global c0
     persistent conversion
     switch flag  

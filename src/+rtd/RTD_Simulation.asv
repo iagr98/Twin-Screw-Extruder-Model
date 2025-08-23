@@ -174,8 +174,7 @@ T_0 = T;
 % Simulate species
 % load last_simulation.mat
 % load kin.mat
-c_in = [7.7277 0.015 0.003 0 0 0 0];
-% c_in = [7.7277 0.025 0.005 0 0 0 0];
+c_in = [7.7277 0.025 0.005 0 0 0 0];
 c_in = repmat(c_in, 1, N_tot);   % row vector of length 7*N_tot
 [c, M_w, w_p] = rtd.CSTR_Reaction(e,c_in, [0 1000]);
 
@@ -218,7 +217,7 @@ yscale log
 hold on
 plot(diff_T)
 plot(diff_c)
-legend('\Delta m', '\Delta T', '\Delta c')
+legend('\Delta m', '\Delta T', '\Delta c', 'Tol')
 grid
 xlabel('Iterations')
 ylabel('Difference')

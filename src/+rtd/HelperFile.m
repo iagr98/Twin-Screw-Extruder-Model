@@ -1,0 +1,45 @@
+clear all; close all; clc
+
+load last_simulation.mat
+
+% Simulate the extruder with temperature dependent viscosity
+tol = 1e-2; 
+max_iter = 10; 
+diff = inf; 
+iter = 0;
+
+while diff > tol && iter < max_iter
+    iter = iter + 1;
+    c_0 = c(end,:);
+    Reaction_data.c = c_0;
+    Reaction_data.M_w = M_w;
+    Reaction_data.w_p = w_p;
+    m_0 = m_sol(end,1:8:end);
+    T_0 = m_sol(end,8:8:end);
+    [t, m_sol] = rtd.CSTR_flow(e, m_0, T_0, [0 time], N_tot, plot_step, Reaction_data);
+    [c, M_w, w_p] = rtd.CSTR_Reaction(e,c_0, [0 1000]);
+    m_1 = m_sol(end,1:8:end);
+    T_1 = m_sol(end,8:8:end);
+    c_1 = c(end,:);
+    diff_m(iter) = max(abs(m_1 - m_0));
+    diff_T(iter) = max(abs(T_1 - T_0));
+    diff_c(iter) = max(abs(c_1(1:7:end) - c_0(1:7:end)));
+    diff = (diff_c(iter)/diff_c(1));
+    fprintf('[diff_m, diff_T, diff_c] : %.3e  %.3f  %.3f\n', diff_m(iter), diff_T(iter), diff_c(iter));
+    if (diff > tol && iter < max_iter)
+        close(1);
+        close(2);
+    end
+end
+
+figure
+plot(diff_m)
+yscale log
+hold on
+plot(diff_T)
+plot(diff_c)
+yline(tol)
+legend('\Delta m', '\Delta T', '\Delta c', 'Tol')
+grid
+xlabel('Iterations')
+ylabel('Difference')

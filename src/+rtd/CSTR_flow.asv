@@ -58,8 +58,8 @@ y0(1:8:end) = m_ini;
 y0(8:8:end) = T_ini;
 
 % Simulate the set up extruder
-options = odeset('OutputFcn',@(t,y,flag) OutFcn(t,y,flag,plot_step, plot_extruder),...
-    'NonNegative',1:length(y0),'RelTol',1e-5,'AbsTol',1e-7,'Events',@stationaryEvent);
+options = odeset('OutputFcn',@(t,y,flag) OutFcn(t,y,flag,plot_step),'NonNegative',1:length(y0),...
+    'RelTol',1e-5,'AbsTol',1e-7,'Events',@stationaryEvent);
 
 [t,m_sol] = ode113(@(t,y) rtd.helper.setup_extruder_ode(t,y), t_span, y0, options);
 m = m_sol;
@@ -67,7 +67,7 @@ m = m_sol;
 end
 
 %% outputfcn to plot extruder state during the simulation
-function status = OutFcn(t,~,flag,plot_step, plot_extruder)
+function status = OutFcn(t,~,flag,plot_step)
 global e
 
 persistent plot_reacts fill conversion pressure filling temperature plot_terms...
@@ -134,72 +134,71 @@ switch flag
         % xlim([0 inf])
 
         % Plot user defined extruder configuration
+        figure
+        set(gca,'DataAspectRatio',[1 .01 1],'YTick',[])
+        xlabel('dimensionless extruder length / L/D')
+        title('screw configuration of simulated extruder');
         n_reac = 1:1:length(e.reactorConfiguration);
+        L_elements = zeros(length(e.screw),1);
+        pitch_elements = zeros(length(e.screw),1);
+        n_elements = zeros(length(e.screw),1);
+        screw_type = zeros(length(e.screw),1);
+        for i = 1:length(L_elements)
+            L_elements(i) = e.screw{i,1}.L;
+            screw_type(i) = e.screw{i,1}.type;
+            switch screw_type(i)
+                case 1
+                    pitch_elements(i) = e.screw{i,1}.pitch;
+                    n_elements(i) = L_elements(i)/pitch_elements(i); 
+                    for j = 1:n_elements(i)
+                        x_end = sum(L_elements(1:i))-(n_elements(i)-j)*pitch_elements(i);
+                        x_start = sum(L_elements(1:i))-(n_elements(i)-j+1)*pitch_elements(i);
+                        x = [x_start,x_start,x_end,x_start];
+                        y = [0,.05,0,0];
+                        hold on
+                        plot(x./e.extruder_geometry.D_e,y,'Color','b')
+                    end
+                case -1
+                    pitch_elements(i) = e.screw{i,1}.pitch;
+                    n_elements(i) = L_elements(i)/pitch_elements(i); 
+                    for j = 1:n_elements(i)
+                        x_start = sum(L_elements(1:i))-(n_elements(i)-j)*pitch_elements(i);
+                        x_end = sum(L_elements(1:i))-(n_elements(i)-j+1)*pitch_elements(i);
+                        x = [x_start,x_start,x_end,x_start];
+                        y = [0,.05,0,0];
+                        hold on
+                        plot(x./e.extruder_geometry.D_e,y,'Color','g')
+                    end
+                case {0,3}
+                    n_elements(i) = e.screw{i,1}.n_D; 
+                    for j = 1:n_elements(i)
+                        x_start = sum(L_elements(1:i-1))+(j-1)*L_elements(i)/n_elements(i);
+                        x_end = sum(L_elements(1:i-1))+(j)*L_elements(i)/n_elements(i);
+                        x = [x_start,x_start,x_end,x_end];
+                        y = [0,.05,0.05,0];
+                        hold on
+                        plot(x./e.extruder_geometry.D_e,y,'Color','r')
+                    end
+                case 2
+                    x_start = sum(L_elements(1:i-1));
+                    x_end = sum(L_elements(1:i));
+                    x = [x_start,x_start,x_end,x_end];
+                    y = [0,.05,0.01,0];
+                    hold on
+                    plot(x./e.extruder_geometry.D_e,y,'Color','black')
+            end
+        end
+
+        % text(0,.06,num2str(1))
+        % title('Extruder Configuration')
         L_extruder = zeros(size(n_reac));
         L_extruder(1) = e.reactorConfiguration{1}.L;
         for i = 2:n_reac(end)
             L_extruder(i) = L_extruder(i-1)+e.reactorConfiguration{i}.L;
         end  
-        if (plot_extruder)
-            figure
-            set(gca,'DataAspectRatio',[1 .01 1],'YTick',[])
-            xlabel('dimensionless extruder length / L/D')
-            title('screw configuration of simulated extruder');
-            L_elements = zeros(length(e.screw),1);
-            pitch_elements = zeros(length(e.screw),1);
-            n_elements = zeros(length(e.screw),1);
-            screw_type = zeros(length(e.screw),1);
-            for i = 1:length(L_elements)
-                L_elements(i) = e.screw{i,1}.L;
-                screw_type(i) = e.screw{i,1}.type;
-                switch screw_type(i)
-                    case 1
-                        pitch_elements(i) = e.screw{i,1}.pitch;
-                        n_elements(i) = L_elements(i)/pitch_elements(i); 
-                        for j = 1:n_elements(i)
-                            x_end = sum(L_elements(1:i))-(n_elements(i)-j)*pitch_elements(i);
-                            x_start = sum(L_elements(1:i))-(n_elements(i)-j+1)*pitch_elements(i);
-                            x = [x_start,x_start,x_end,x_start];
-                            y = [0,.05,0,0];
-                            hold on
-                            plot(x./e.extruder_geometry.D_e,y,'Color','b')
-                        end
-                    case -1
-                        pitch_elements(i) = e.screw{i,1}.pitch;
-                        n_elements(i) = L_elements(i)/pitch_elements(i); 
-                        for j = 1:n_elements(i)
-                            x_start = sum(L_elements(1:i))-(n_elements(i)-j)*pitch_elements(i);
-                            x_end = sum(L_elements(1:i))-(n_elements(i)-j+1)*pitch_elements(i);
-                            x = [x_start,x_start,x_end,x_start];
-                            y = [0,.05,0,0];
-                            hold on
-                            plot(x./e.extruder_geometry.D_e,y,'Color','g')
-                        end
-                    case {0,3}
-                        n_elements(i) = e.screw{i,1}.n_D; 
-                        for j = 1:n_elements(i)
-                            x_start = sum(L_elements(1:i-1))+(j-1)*L_elements(i)/n_elements(i);
-                            x_end = sum(L_elements(1:i-1))+(j)*L_elements(i)/n_elements(i);
-                            x = [x_start,x_start,x_end,x_end];
-                            y = [0,.05,0.05,0];
-                            hold on
-                            plot(x./e.extruder_geometry.D_e,y,'Color','r')
-                        end
-                    case 2
-                        x_start = sum(L_elements(1:i-1));
-                        x_end = sum(L_elements(1:i));
-                        x = [x_start,x_start,x_end,x_end];
-                        y = [0,.05,0.01,0];
-                        hold on
-                        plot(x./e.extruder_geometry.D_e,y,'Color','black')
-                end
-            end
-            xlim([0,L_extruder(end)/e.extruder_geometry.D_e])
-        end
-    
-        % text(0,.06,num2str(1))
-        % title('Extruder Configuration')
-               
+
+        xlim([0,L_extruder(end)/e.extruder_geometry.D_e])        
+       
     case []
         if mod(step_number,plot_step) ~= 0 % draw solution only for every n-th step
            % don't draw anything 

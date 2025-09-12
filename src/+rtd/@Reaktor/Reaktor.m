@@ -145,7 +145,8 @@ classdef Reaktor < matlab.mixin.Heterogeneous
             obj.conv = (obj.M0*volume-obj.mol(1))/(obj.M0*volume);
             obj.conv(obj.conv<0)=0;
             % obj.molarMass(6:7) = (obj.conv*obj.M0*obj.V*obj.f)/(obj.mol(6)+obj.mol(7))*2*obj.M_rep+obj.molarMass(4);
-            obj.molarMass(6:7) = (obj.conv*obj.M0*volume)/((obj.M0/obj.ratio(1)*obj.ratio(2)-obj.mol(2))*volume)*2*obj.M_rep+obj.molarMass(4);
+            % obj.molarMass(6:7) = (obj.conv*obj.M0*volume)/((obj.M0/obj.ratio(1)*obj.ratio(2)-obj.mol(2))*volume)*2*obj.M_rep+obj.molarMass(4);
+            obj.molarMass(6:7) = (obj.conv*obj.M0*volume)/((obj.M0/obj.ratio(1)*obj.ratio(2))*volume)*2*obj.M_rep+obj.molarMass(4);
             obj.molarMass(isnan(obj.molarMass)) = obj.molarMass(4);
             obj.molarMass(isinf(obj.molarMass)) = obj.molarMass(4);
             obj.Mn(2) = obj.molarMass(6); % in kg/mol

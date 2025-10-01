@@ -1,43 +1,40 @@
 function [c, M_w, w_p] = CSTR_Reaction(extruder, c_in, tspan)
 
-    reactorStruct = rtd.helper.reactor_struct_for_reaction(extruder, c_in);
+    reactorStruct = rtd.Reactor.reactor_struct_for_reaction(extruder);
     
     global c0;
-    % Anzahl der Reaktoren und Komponenten
+
     n_reactors = numel(reactorStruct);
-    % n_species = numel(reactorStruct(1).InitialConcentration);
     n_species = 7;
     
     % Initialbedingungen
     if isempty(c0)
         c0 = [];
         for i = 1:n_reactors
-            % c0 = [c0; reactorStruct(i).InitialConcentration(:)];
             c0 = [c0; c_in(1:n_species)'];
         end
     end
     % Berechnung der Geschwindigkeitsraten (k)
-    load +rtd\+data\+variables\variables.mat ratio
+    load +rtd\+data\+variables\variables.mat ratio T_melt M0
     load +rtd\+data\+variables\kinetic.mat C1_kin
     load +rtd\+data\+variables\kin.mat
-    % if nargin < 4 % checks if concentrations c were given as input
-        M0 = 7.7277e3;
-        ROH0 = M0/ratio(1)*ratio(2);
-        k_in = k;
-        k = zeros(8, n_reactors);
-        for i = 1:n_reactors
-            if (extruder.reactorConfiguration{i}.T_m(2) > extruder.reactorConfiguration{i}.T_melt)
-                k(:,i) = rtd.helper.setup_kinparameters(extruder.reactorConfiguration{i}.T_m(2), ROH0 ,C1_kin);
-            else
-                k(:,i) = k_in;
-            end
-        end
-    % else
-    %     k = k_input;
-    % end
     
-    % DGL-System lsen
-    % options = odeset('RelTol',1e-6,'AbsTol',1e-8);
+    ROH0 = M0/ratio(1)*ratio(2);
+    k_in = k;
+    k = zeros(8, n_reactors);
+    for i = 1:n_reactors
+        if i==1
+            k(:,i) = 0;
+        end
+        if (reactorStruct(i).T > T_melt && i>1)          
+            k(:,i) = rtd.Reactor.setup_kinparameters(reactorStruct(i).T, ROH0 ,C1_kin);
+        else
+            k(:,i) = k_in;
+        end
+    end
+
+    
+    % Solve ODE-System
     options = odeset('OutputFcn',@(t,y,flag) myOutputFcn(t,y,flag),'RelTol',1e-6,'AbsTol',1e-8);
     % [t, c] = ode15s(@(t,c) reactorSystem(t, c, reactorStruct, n_species, k, c_in(1:n_species)), tspan, c0, options);      
     [t, c] = ode15s(@(t,c) reactorSystem(t, c, reactorStruct, n_species, k, c0(1:n_species)), tspan, c_in, options);      
@@ -47,19 +44,21 @@ function [c, M_w, w_p] = CSTR_Reaction(extruder, c_in, tspan)
     m = zeros(n_species, n_reactors);
     M_w = zeros(n_reactors,1);
     w_p = zeros(n_reactors,1);
+    reactor = rtd.Reactor();
     for i=1:n_reactors
         volume = extruder.reactorConfiguration{i}.V*extruder.reactorConfiguration{i}.f*1000;
         extruder.reactorConfiguration{i}.mol = extruder.reactorConfiguration{i}.m./ extruder.reactorConfiguration{i}.molarMass;
-        extruder.reactorConfiguration{i} = calcMolarMasses(extruder.reactorConfiguration{i});
+        [extruder.reactorConfiguration{i}.Mn(2), extruder.reactorConfiguration{i}.molarMass]  = rtd.Reactor.calcMolarMasses(reactor, m, extruder.reactorConfiguration{i}.mol, extruder.reactorConfiguration{i}.molarMass);
         m(:,i) = volume * c_last((i-1)*7+1:(i-1)*7+7) .* extruder.reactorConfiguration{i}.molarMass;
-        extruder.reactorConfiguration{i}.mol = m(:,i)./ extruder.reactorConfiguration{i}.molarMass;
-        extruder.reactorConfiguration{i} = calcMolarMasses(extruder.reactorConfiguration{i});
+        extruder.reactorConfiguration{i}.mol = extruder.reactorConfiguration{i}.m./ extruder.reactorConfiguration{i}.molarMass;
+        [extruder.reactorConfiguration{i}.Mn(2), extruder.reactorConfiguration{i}.molarMass]  = rtd.Reactor.calcMolarMasses(reactor, m, extruder.reactorConfiguration{i}.mol, extruder.reactorConfiguration{i}.molarMass);
         m(:,i) = volume * c_last((i-1)*7+1:(i-1)*7+7) .* extruder.reactorConfiguration{i}.molarMass;
         M_w(i) = extruder.reactorConfiguration{i}.Mn(2) * 1.2;
         w_p(i) = (m(6,i)+m(7,i))/sum(m(:,i));
     end
-    % fprintf('Massenvektor fr Viskosittsberechnung: \n \n');
-    % disp(array2table(m));
+
+    fprintf('Massenvektor fr Viskosittsberechnung: \n \n');
+    disp(array2table(m));
 end
 
 function dc = reactorSystem(t, c, reactorStruct, n_species, k, c_in)
@@ -87,15 +86,10 @@ function dc = reactorSystem(t, c, reactorStruct, n_species, k, c_in)
             inflow_terms = inflow_terms + Q.* c(src_idx);
         end
         
-        % Ausstrombehandlung
-        % if i == n_reactors
-        %     outflow_total = reactor.Outflows.FlowRate;
-        % else
-            outflow_total = sum([reactor.Outflows.FlowRate]);
-        % end
+        outflow_total = sum([reactor.Outflows.FlowRate]);
         
         % Massenbilanz
-        reaction_rates = rtd.helper.dcdt_reaction(c_current, k(:,i));
+        reaction_rates = rtd.Reactor.dcdt_reaction(c_current, k(:,i));
         dc(idx) = (inflow_terms - outflow_total*c_current)/V + reaction_rates;
      
     end

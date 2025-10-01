@@ -1,4 +1,4 @@
-classdef KB45 < rtd.Reaktor
+classdef KB45 < rtd.ScrewElement
     %Klasse zur Erstellung von Knetblcken
 
     properties
@@ -50,7 +50,7 @@ classdef KB45 < rtd.Reaktor
         function obj = KB45(extruder_geometry,screw,N)
             %KB Construct an instance of class kneading block
 
-            obj@rtd.Reaktor(extruder_geometry,screw,N);
+            obj@rtd.ScrewElement(extruder_geometry,screw,N);
 
             obj.D_e = extruder_geometry.D_e;
             obj.D_i = extruder_geometry.D_i;

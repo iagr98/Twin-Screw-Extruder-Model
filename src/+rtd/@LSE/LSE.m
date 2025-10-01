@@ -1,14 +1,10 @@
 classdef LSE < rtd.RSE
-    %UNTITLED4 Summary of this class goes here
-    %   Detailed explanation goes here
 
     properties
     end
 
     methods
         function obj = LSE(extruder_geometry,screw,N)
-            %UNTITLED4 Construct an instance of this class
-            %   Detailed explanation goes here
             obj@rtd.RSE(extruder_geometry,screw,N);          
         end
         

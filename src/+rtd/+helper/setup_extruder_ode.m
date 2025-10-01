@@ -4,13 +4,10 @@ function dydt = setup_extruder_ode(~,y)
 global e
 % set starting values for e according to current solution of ode
 for ixReactor = 1:length(e.reactorConfiguration)
-    e.reactorConfiguration{ixReactor}.m = y((ixReactor-1)*8+1:(ixReactor-1)*8+7);
-    e.reactorConfiguration{ixReactor}.T_m(2) = y((ixReactor-1)*8+8);
+    e.reactorConfiguration{ixReactor}.m = y((ixReactor-1)*2+1);
+    e.reactorConfiguration{ixReactor}.T_m(2) = y((ixReactor-1)*2+2);
     e.reactorConfiguration{ixReactor} = calcFillingLevel(e.reactorConfiguration{ixReactor});
-    e.reactorConfiguration{ixReactor}.w(:,2) = e.reactorConfiguration{ixReactor}.m/sum(e.reactorConfiguration{ixReactor}.m);
-    e.reactorConfiguration{ixReactor}.w(isnan(e.reactorConfiguration{ixReactor}.w)) = 0;
     e.reactorConfiguration{ixReactor}.m_Flow = [0 0 0 0; 0 0 0 0];
-    e.reactorConfiguration{ixReactor} = calcMolarMasses(e.reactorConfiguration{ixReactor});
 end
 e.reactorConfiguration{1}.m_Flow = [e.m_Flow0 0 0 0; 0 0 0 0];
 
@@ -129,13 +126,10 @@ end
 
 % connect streams between reactors
 e.reactorConfiguration{1}.m_Flow(:,4) = e.reactorConfiguration{2}.m_Flow(:,2);
-e.reactorConfiguration{1}.w(:,3) = e.reactorConfiguration{2}.w(:,2);
 for i = 2:length(e.reactorConfiguration)
     e.reactorConfiguration{i}.m_Flow(:,1) = e.reactorConfiguration{i-1}.m_Flow(:,3);
-    e.reactorConfiguration{i}.w(:,1) = e.reactorConfiguration{i-1}.w(:,2);
     if i < length(e.reactorConfiguration)
         e.reactorConfiguration{i}.m_Flow(:,4) = e.reactorConfiguration{i+1}.m_Flow(:,2);
-        e.reactorConfiguration{i}.w(:,3) = e.reactorConfiguration{i+1}.w(:,2);
     end
     % Adjust streams between reactors if mass flow balance is not kept.
     if (sum(e.reactorConfiguration{i}.m_Flow(:,1)) - sum(e.reactorConfiguration{i}.m_Flow(:,2)))>e.m_Flow0
@@ -165,28 +159,12 @@ for ixReactor = 1:length(e.reactorConfiguration)
 end
 
 
-%% set areas in extruder where reaction should be on or off
-% load variables/variables.mat T_melt
-% for ixReactor = 2:length(e.reactorConfiguration)
-%     % Initiallization
-%     if (e.reactorConfiguration{ixReactor-1}.T_m(2)<T_melt &&...
-%             e.reactorConfiguration{ixReactor}.T_m(2)>=T_melt &&...
-%             strcmp(e.reactorConfiguration{ixReactor}.is_reaction, 'off'))
-%         conce_start = Reaktor.setup_Reaction();
-%         e.reactorConfiguration{ixReactor}.w(:,1) = Reaktor.massfrac(conce_start);
-%         indexReaction = ixReactor;
-%     end
-%    % setting reaction in reactors "on" or "off"
-%    if exist('indexReaction', 'var') && ixReactor>=indexReaction
-%        e.reactorConfiguration{ixReactor}.is_reaction = 'on';
-%    end
-% end
-
 %% define dydt
 e.reactorConfiguration{1} = ode(e.reactorConfiguration{1});
 dydt = e.reactorConfiguration{1}.dydt;
 for ixR = 2:length(e.reactorConfiguration)
     e.reactorConfiguration{ixR} = ode(e.reactorConfiguration{ixR}); 
-    dydt = [dydt; e.reactorConfiguration{ixR}.dydt];  
+    dydt = [dydt, e.reactorConfiguration{ixR}.dydt];
 end
+dydt = dydt';
 end

@@ -7,8 +7,6 @@ T_melt = 98;
 
 % Setup reaction start conditions
 if nargin < 7 % checks if concentrations c were given as input
-    e.reactorConfiguration{1}.w(:,1) = zeros(7,1);
-    e.reactorConfiguration{1}.w(1,1) = 1;
     plot_extruder = true;
 else    
     c = Reaction_data.c;
@@ -31,19 +29,7 @@ else
                 end
             else
                 e.reactorConfiguration{1}.c(:,3) = e.reactorConfiguration{2}.c(:,2);
-            end
-            % mass_flow_in = sum(e.reactorConfiguration{i}.m_Flow(:,1)) + sum(e.reactorConfiguration{i}.m_Flow(:,4));
-            % tau = mass_flow_in /sum(e.reactorConfiguration{i}.m);
-            % if i < length(e.reactorConfiguration)
-            %     dc_dt = c(i*7+1)-c((i-1)*7+1)/ tau;            
-            % else
-            %     dc_dt = 0;
-            % end
-            % h_R = e.reactorConfiguration{i}.h_R;
-            % f = e.reactorConfiguration{i}.f;
-            % rho = e.reactorConfiguration{i}.rho;
-            % c_p = e.reactorConfiguration{i}.c_p;
-            % e.reactorConfiguration{i}.term4 = -dc_dt*h_R/(f*rho*c_p);     
+            end     
             e.reactorConfiguration{i} = calcTerm4(e.reactorConfiguration{i}); 
             e.reactorConfiguration{i}.flag_term4 = 1;
         end        
@@ -53,9 +39,9 @@ else
 end
  
 % Set initial condition vector (y0) according to f_ini in screw and T
-y0 = zeros(N_tot*8,1);
-y0(1:8:end) = m_ini;
-y0(8:8:end) = T_ini;
+y0 = zeros(N_tot*2,1);
+y0(1:2:end) = m_ini;
+y0(2:2:end) = T_ini;
 
 % Simulate the set up extruder
 options = odeset('OutputFcn',@(t,y,flag) OutFcn(t,y,flag,plot_step, plot_extruder),...
@@ -71,7 +57,7 @@ function status = OutFcn(t,~,flag,plot_step, plot_extruder)
 global e
 
 persistent plot_reacts fill conversion pressure filling temperature plot_terms...
-    terms L_extruder step_number viscosity
+    terms L_extruder step_number viscosity heat_flow
   
 switch flag
     case 'init'
@@ -90,8 +76,8 @@ switch flag
         ylabel('fill level')
         legend(legend_labels)
         subplot(3,2,1)
-        conversion = animatedline('color','k');        
-        ylabel('conversion / -')
+        heat_flow = animatedline('color','k');        
+        ylabel('Heat flow / J/s')
         xlim([0 inf])
         grid
         subplot(3,2,3)
@@ -239,6 +225,7 @@ switch flag
 
                 eta_av(i) = e.reactorConfiguration{i}.eta_av;
                 % gamma_av(i) = e.reactorConfiguration{i}.gamma_av;
+                dTdt(i) = e.reactorConfiguration{i}.dTdt;
                 
                                                 
             end
@@ -246,8 +233,8 @@ switch flag
                 % add points to the created plots 
                 addpoints(fill{ip},t(end),e.reactorConfiguration{plot_reacts(ip)}.f)
             end
-            clearpoints(conversion)
-            addpoints(conversion,L_extruder,conv)
+            clearpoints(heat_flow)
+            addpoints(heat_flow,L_extruder,dTdt)
             clearpoints(filling)
             addpoints(filling,L_extruder,f)
             clearpoints(pressure)

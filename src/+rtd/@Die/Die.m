@@ -1,4 +1,4 @@
-classdef Die < rtd.Reaktor
+classdef Die < rtd.ScrewElement
     %UNTITLED3 Summary of this class goes here
     %   Needs to be worked on. Initial assumption: Geometry is 2/3
     %   Kegelstumpf and 1/3 cylinder with die outlet diameter
@@ -30,7 +30,7 @@ classdef Die < rtd.Reaktor
         function obj = Die(extruder_geometry,screw,N, Die_count)  
             %UNTITLED3 Construct an instance of this class
             %   Detailed explanation goes here
-            obj@rtd.Reaktor(extruder_geometry,screw,N);            
+            obj@rtd.ScrewElement(extruder_geometry,screw,N);            
             obj.D_e = extruder_geometry.D_e;
             obj.D_i = extruder_geometry.D_i;
             obj.D_b = extruder_geometry.D_b;

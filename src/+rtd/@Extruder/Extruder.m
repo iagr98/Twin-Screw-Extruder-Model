@@ -71,15 +71,15 @@ classdef Extruder
         end
 
         
-        function [obj,y0] = setInitials(obj)
-            y0 = [];
-            for i = 1:length(obj.reactorConfiguration)
-                obj.reactorConfiguration{i} = obj.reactorConfiguration{i}.setInitialFilling;
-                y_add = obj.reactorConfiguration{i}.m;
-                y_add(8) = obj.T;
-                y0 = [y0; y_add];
-            end
-        end       
+        % function [obj,y0] = setInitials(obj)
+        %     y0 = [];
+        %     for i = 1:length(obj.reactorConfiguration)
+        %         obj.reactorConfiguration{i} = obj.reactorConfiguration{i}.setInitialFilling;
+        %         y_add = obj.reactorConfiguration{i}.m;
+        %         y_add(8) = obj.T;
+        %         y0 = [y0; y_add];
+        %     end
+        % end       
         
     end   
 end

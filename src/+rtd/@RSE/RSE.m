@@ -1,4 +1,4 @@
- classdef RSE < rtd.Reaktor
+ classdef RSE < rtd.ScrewElement
 
     properties
         psi      % 
@@ -42,7 +42,7 @@
     methods
         %Konstruktor der Klasse
         function obj = RSE(extruder_geometry,screw,N)
-            obj@rtd.Reaktor(extruder_geometry,screw,N);
+            obj@rtd.ScrewElement(extruder_geometry,screw,N);
 
             obj.D_e = extruder_geometry.D_e;
             obj.D_i = extruder_geometry.D_i;

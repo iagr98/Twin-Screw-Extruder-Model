@@ -1,0 +1,86 @@
+%% Simulation model for reactive extrusion in twin screw extruder
+% Sets up and simulates a twin screw extruder with user defined geometry
+% and process conditions. The model uses a C-Chamber approach combined in
+% an ideal CSTR cascade.
+% Parameters for the ring opening polymerization of lactide to polylactide
+% are stored.
+
+tic; clear all; close all; clc
+global e
+
+
+%% User defined inputs for extruder setup and model
+
+% Set operating conditions
+% m_Flow0 = 50*1e-3/3600;    % input mass flow in kg/s 
+m_Flow0 = 1e-4;
+N = 100/60;         % screw rpm
+
+% numerics related simulation inputs 
+time = 10800;           % Simulation end time in seconds
+plot_step = 5;          % plot only n-th time step (plotting every solution step is computationally very expensive)
+
+% reaction related simulation inputs
+T = 25;                 % Temperature at input of the extruder in C
+T_melt = 98;            % Melt temperature of lactide in C
+P_U = 1e5;              % Ambient pressure in Pa
+ratio = [500;2;1];      % Molar ratio of monomer:co-initiator:catalyst
+M0 = 7.7277e3;          % Initial monomer concentration / mol/m3
+
+% Save inputs
+save('+rtd\+data\+variables\variables.mat', 'T', 'P_U', 'm_Flow0', 'N',...
+    'ratio', 'T_melt', 'M0');
+
+% Import extruder geometry
+load +rtd\+data\screwGeometry.mat
+
+% Calculate barrel temperature distribution and total number of reactors
+[T_b, N_tot] = rtd.helper.calcBarrelTemperature(screw);
+
+
+%% Set up extruder and simulation framework
+
+% Define and create extruder 
+e = rtd.Extruder(D_e,D_i,D_b,C_l, T_b);
+e = designExtruder(e,screw,N);
+
+% Simulate flow of extruder
+m_0 = 0;
+T_0 = T;
+[t, m_sol] = rtd.CSTR_flow(e, m_0, T_0, [0 time], N_tot, plot_step);
+save last_simulation.mat
+
+% Simulate species
+% load last_simulation.mat
+% load kin.mat
+% c_in = [7.7277 0.015 0.003 0 0 0 0];
+c_in = [7.7277 0.025 0.005 0 0 0 0];
+c_in = repmat(c_in, 1, N_tot);   % row vector of length 7*N_tot
+[c, M_w, w_p] = rtd.CSTR_Reaction(e,c_in, [0 1000]);
+
+% save last_simulation.mat
+% load last_simulation.mat
+
+% Simulate the extruder with temperature dependent viscosity
+rtd.helper.convergenceLoop(e,c,M_w, w_p, m_sol, time, N_tot, plot_step)
+
+
+% Calculate mean residence time
+filled_volume = 0;
+for i = 1 : length(e.reactorConfiguration)
+    filled_volume = filled_volume+e.reactorConfiguration{i}.V*e.reactorConfiguration{i}.f;
+end
+tau_mean = filled_volume/(e.m_Flow0/e.reactorConfiguration{1}.rho);
+elapsed_time = toc;
+fprintf('Simulation runtime: %f s',elapsed_time)
+
+
+
+% Saving inputs
+projectRoot = fileparts(fileparts(fileparts(mfilename('fullpath'))));
+results_dir = fullfile(projectRoot, 'results');
+if ~exist(results_dir, 'dir'); mkdir(results_dir); end
+runID = char(datetime('now','Format','yyyyMMdd_HHmmss'));   % z.B. 20250813_101544
+results_dir_actual = fullfile(results_dir, runID);
+if ~exist(results_dir_actual, 'dir'); mkdir(results_dir_actual); end
+save(fullfile(results_dir_actual, 'last_simulation.mat'), 'runID');
